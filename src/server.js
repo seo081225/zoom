@@ -41,7 +41,7 @@ wsServer.on("connection", (socket) => {
         socket.join(roomName);
         done();
         socket.to(roomName).emit("welcome ", socket.nickname, countRoom(roomName));
-        wsServer.sockets.emit("room_change", publicRooms());
+        wsServer.sockets.emit("room_change", { rooms: publicRooms() });
     });
     socket.on("disconnecting", () => {
         socket.rooms.forEach((room) => socket.to(room).emit("bye", socket.nickname, countRoom(room) - 1));
@@ -53,7 +53,11 @@ wsServer.on("connection", (socket) => {
         socket.to(room).emit("new_message", `${socket.nickname}: ${msg}`);
         done();
     });
-    socket.on("nickname", (nickname) => (socket["nickname"] = nickname));
+    socket.on("save_nick", (nickname, done) => {
+        socket["nickname"] = nickname;
+        socket.to(nickname).emit("save_nick", socket.nickname);
+        done();
+    });
 });
 
 const handleListen = () => console.log(`Listening on http://localhost:3000`);
