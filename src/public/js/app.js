@@ -85,7 +85,7 @@ socket.on("room_change", (rooms) => {
         return;
     }
     const roomList = welcome.querySelector("ul");
-    rooms.forEach((room) => {
+    rooms.rooms.forEach((room) => {
         const li = document.createElement("li");
         li.innerText = room;
         roomList.append(li);
