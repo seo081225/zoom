@@ -108,19 +108,29 @@ async function initCall() {
 
 async function handleWelcomeSubmit(event) {
     event.preventDefault();
-    const input = welcomeForm.querySelector("input");
-    await initCall();
-    socket.emit("join_room", input.value);
-    roomName = input.value;
-    input.value = "";
+    const input = welcomeForm.querySelectorAll("input");
+
+    socket.emit("verifiy", input[0].value, async (message) => {
+        if (message === "FULL") {
+            alert("This room is full");
+        } else {
+            await initCall();
+            socket.emit("join_room", input[0].value, input[1].value);
+            roomName = input[0].value;
+        }
+        input[0].value = "";
+        input[1].value = "";
+    });
 }
 
 welcome.addEventListener("submit", handleWelcomeSubmit);
 
 // Socket Code
-socket.on("welcome", async () => {
+socket.on("welcome", async (nickName) => {
     myDataChannel = myPeerConnection.createDataChannel("chat");
-    myDataChannel.addEventListener("message", (event) => console.log(event.data));
+    myDataChannel.addEventListener("message", (event) => {
+        handleChatReceive(nickName, event);
+    });
     console.log("made data channel");
     const offer = await myPeerConnection.createOffer();
     myPeerConnection.setLocalDescription(offer);
@@ -128,10 +138,12 @@ socket.on("welcome", async () => {
     socket.emit("offer", offer, roomName);
 });
 
-socket.on("offer", async (offer) => {
+socket.on("offer", async (offer, nickName) => {
     myPeerConnection.addEventListener("datachannel", (event) => {
         myDataChannel = event.channel;
-        myDataChannel.addEventListener("message", (event) => console.log(event.data));
+        myDataChannel.addEventListener("message", (event) => {
+            handleChatReceive(nickName, event);
+        });
     });
     console.log("received the offer");
     myPeerConnection.setRemoteDescription(offer);
@@ -149,6 +161,13 @@ socket.on("answer", (answer) => {
 socket.on("ice", (ice) => {
     console.log("received candidate");
     myPeerConnection.addIceCandidate(ice);
+});
+
+socket.on("bye", (nickName) => {
+    console.log(`${nickName} left!`);
+    peerFace.hidden = true;
+    chat.hidden = true;
+    messageList.innerHTML = "";
 });
 
 // RTC Code
@@ -181,4 +200,28 @@ function handleAddStream(data) {
     console.log("MyStream Stream", myStream);
     const peerFace = document.getElementById("peerFace");
     peerFace.srcObject = data.stream;
+    chat.hidden = false;
 }
+
+// Chat
+const chat = document.getElementById("chat");
+const chatForm = chat.querySelector("form");
+const messageList = chat.querySelector("ul");
+
+function handleChatReceive(nickName, event) {
+    const li = document.createElement("li");
+    li.innerText = `${nickName}: ${event.data}`;
+    messageList.appendChild(li);
+}
+
+function handleChatSend(event) {
+    event.preventDefault();
+    const input = chat.querySelector("input");
+    myDataChannel.send(input.value);
+    const li = document.createElement("li");
+    li.innerText = `You: ${input.value}`;
+    messageList.appendChild(li);
+    input.value = "";
+}
+
+chatForm.addEventListener("submit", handleChatSend);

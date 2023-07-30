@@ -12,13 +12,20 @@ html(lang="en")
         main
             div#welcome
                 form(action="")
-                    input(placeholder="room name", required)
+                    input(placeholder="room name", type="text", required)
+                    input(placeholder="nick name", type="text", required)
                     button Enter room
             div#call
                 video#myFace(autoplay, playsinline, width="400",height="400")
-                button#mute Mute
-                button#camera Turn Camera Off
-                select#cameras
+                div 
+                    button#mute Mute
+                    button#camera Turn Camera Off
+                    select#cameras
                 video#peerFace(autoplay,playsinline, width="400", height="400")
+                div#chat(hidden)
+                    form
+                        input(placeholder="Please enter a message", type="text", required)
+                        button Enter
+                    ul#messageList                    
         script(src="/socket.io/socket.io.js") 
         script(src="/public/js/app.js") 

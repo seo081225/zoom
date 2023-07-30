@@ -14,18 +14,33 @@ const httpServer = http.createServer(app);
 const wsServer = SocketIO(httpServer);
 
 wsServer.on("connection", (socket) => {
-    socket.on("join_room", (roomName) => {
+    socket.on("verifiy", (roomName, done) => {
+        const room = wsServer.sockets.adapter.rooms.get(roomName);
+        const roomSize = room ? room.size : 0;
+        if (roomSize >= 2) {
+            done("FULL");
+        } else {
+            done("OK");
+        }
+    });
+    socket.on("join_room", (roomName, nickName) => {
         socket.join(roomName);
-        socket.to(roomName).emit("welcome");
+        socket["nickName"] = nickName;
+        socket.to(roomName).emit("welcome", socket.nickName);
     });
     socket.on("offer", (offer, roomName) => {
-        socket.to(roomName).emit("offer", offer);
+        socket.to(roomName).emit("offer", offer, socket.nickName);
     });
     socket.on("answer", (answer, roomName) => {
         socket.to(roomName).emit("answer", answer);
     });
     socket.on("ice", (ice, roomName) => {
         socket.to(roomName).emit("ice", ice);
+    });
+    socket.on("disconnecting", () => {
+        socket.rooms.forEach((room) => {
+            socket.to(room).emit("bye", socket.nickName);
+        });
     });
 });
 
